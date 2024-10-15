@@ -38,6 +38,7 @@ func (a *application) Setup() {
 			a.InitPrometheus,
 			a.InitBootstrap,
 			a.InitServices,
+			a.InitScheduler,
 		),
 		fx.Invoke(func(bootstrap bootstrap.Bootstrap, scheduler scheduler.Scheduler) {
 			bootstrap.InitializeHistoricalData()
