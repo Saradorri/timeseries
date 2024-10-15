@@ -7,6 +7,7 @@ type ServiceConfig struct {
 
 type app struct {
 	GrpcPort               int    `mapstructure:"grpc_port"`
+	MetricPort             int    `mapstructure:"metric_port"`
 	ScheduleIntervalMinute int    `mapstructure:"schedule_interval_min"`
 	ApiUrl                 string `mapstructure:"api_url"`
 }

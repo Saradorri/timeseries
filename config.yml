@@ -1,0 +1,9 @@
+app:
+  grpc_port: 5050
+  metric_port: 2112
+  schedule_interval_min: 5
+  api_url: ""
+
+database:
+  scrape_url: "http://localhost:9090"
+  job_name: "prometheus"
