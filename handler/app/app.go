@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"edgecom.ai/timeseries/internal/bootstrap"
+	"edgecom.ai/timeseries/internal/scheduler"
 	"edgecom.ai/timeseries/utils"
 	"go.uber.org/fx"
 	"log"
@@ -38,8 +39,9 @@ func (a *application) Setup() {
 			a.InitBootstrap,
 			a.InitServices,
 		),
-		fx.Invoke(func(bootstrap bootstrap.Bootstrap) {
+		fx.Invoke(func(bootstrap bootstrap.Bootstrap, scheduler scheduler.Scheduler) {
 			bootstrap.InitializeHistoricalData()
+			scheduler.StartScheduler()
 		}),
 	)
 	app.Run()
