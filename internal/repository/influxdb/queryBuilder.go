@@ -14,7 +14,7 @@ var supportedAggregations = map[string]string{
 	"SUM": "sum",
 }
 
-func BuildQuery(q models.TimeSeriesQuery, bucket, measurement string) (string, error) {
+func RangeQuery(q models.TimeSeriesQuery, bucket, measurement string) (string, error) {
 
 	agr := strings.ToUpper(q.Aggregation)
 	aggFunc, ok := supportedAggregations[agr]
@@ -42,4 +42,13 @@ func BuildQuery(q models.TimeSeriesQuery, bucket, measurement string) (string, e
 	)
 
 	return query, nil
+}
+
+func LatestTimestampQuery(bucket string) string {
+	query := fmt.Sprintf(`from(bucket: "%s")
+              |> range(start: 0)
+              |> last()
+	`, bucket)
+
+	return query
 }

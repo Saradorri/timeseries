@@ -11,6 +11,7 @@ import (
 type Repository interface {
 	WriteData(ctx context.Context, data []models.TimeSeriesData) error
 	QueryData(ctx context.Context, query models.TimeSeriesQuery) ([]models.TimeSeriesData, error)
+	GetLatestDataPointTimestamp(ctx context.Context) (int64, error)
 }
 
 type influxDBRepository struct {
@@ -40,7 +41,11 @@ func (r *influxDBRepository) WriteData(ctx context.Context, data []models.TimeSe
 }
 
 func (r *influxDBRepository) QueryData(ctx context.Context, q models.TimeSeriesQuery) ([]models.TimeSeriesData, error) {
-	query, err := BuildQuery(q, r.bucket, q.Aggregation)
+	query, err := RangeQuery(q, r.bucket, q.Aggregation)
+
+	if err != nil {
+		return nil, fmt.Errorf("query error: %w", err)
+	}
 
 	result, err := r.Client.QueryAPI(r.org).Query(ctx, query)
 	if err != nil {
@@ -62,4 +67,20 @@ func (r *influxDBRepository) QueryData(ctx context.Context, q models.TimeSeriesQ
 	}
 
 	return results, nil
+}
+
+func (r *influxDBRepository) GetLatestDataPointTimestamp(ctx context.Context) (int64, error) {
+	query := LatestTimestampQuery(r.bucket)
+
+	result, err := r.Client.QueryAPI(r.org).Query(ctx, query)
+	if err != nil || result == nil {
+		return 0, err
+	}
+
+	var latestTimestamp int64
+	for result.Next() {
+		record := result.Record()
+		latestTimestamp = record.Time().Unix()
+	}
+	return latestTimestamp, nil
 }

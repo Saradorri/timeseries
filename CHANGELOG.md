@@ -1,4 +1,4 @@
-## [1.0.0] - 2024-10-16
+## [2.0.0] - 2024-10-16
 ### Changed
 - Change Prometheus to InfluxDB
 

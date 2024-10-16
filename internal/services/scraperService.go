@@ -4,33 +4,39 @@ import (
 	"edgecom.ai/timeseries/internal/repository/influxdb"
 	"edgecom.ai/timeseries/pkg/models"
 	"encoding/json"
+	"fmt"
 	"golang.org/x/net/context"
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 type ScraperService interface {
-	FetchData(endpoint string) error
+	FetchData(start, end time.Time) error
 }
 
 type scraperService struct {
 	client     *http.Client
 	repository influxdb.Repository
+	baseUrl    string
 }
 
 type ResponseData struct {
 	Result []models.TimeSeriesData `json:"result"`
 }
 
-func NewScraperService(r influxdb.Repository) ScraperService {
-	return &scraperService{&http.Client{}, r}
+func NewScraperService(r influxdb.Repository, baseUrl string) ScraperService {
+	return &scraperService{&http.Client{}, r, baseUrl}
 }
 
-func (s *scraperService) FetchData(endpoint string) error {
+func (s *scraperService) FetchData(start, end time.Time) error {
 	log.Println("Fetching time series data from API...")
 
-	response, err := s.client.Get(endpoint)
+	timeFormat := "2006-01-02T15:04:05"
+	u := fmt.Sprintf("%s?start=%s&end=%s", s.baseUrl, start.Format(timeFormat), end.Format(timeFormat))
+
+	response, err := s.client.Get(u)
 	if err != nil {
 		log.Printf("Error fetching data: %v", err)
 		return err

@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"edgecom.ai/timeseries/internal/services"
 	"log"
 	"time"
@@ -11,17 +12,17 @@ type Scheduler interface {
 }
 
 type scheduler struct {
-	ticker  *time.Ticker
-	url     string
-	service services.ScraperService
+	ticker            *time.Ticker
+	scraper           services.ScraperService
+	timeSeriesService services.TimeSeriesService
 }
 
-func NewScheduler(apiUrl string, interval int, service services.ScraperService) Scheduler {
+func NewScheduler(interval int, ss services.ScraperService, ts services.TimeSeriesService) Scheduler {
 	ticker := time.NewTicker(time.Duration(interval) * time.Minute)
 	return &scheduler{
-		ticker:  ticker,
-		url:     apiUrl,
-		service: service,
+		ticker:            ticker,
+		scraper:           ss,
+		timeSeriesService: ts,
 	}
 }
 
@@ -31,7 +32,8 @@ func (s *scheduler) StartScheduler() {
 			select {
 			case <-s.ticker.C:
 				log.Println("Fetching new data...")
-				err := s.service.FetchData(s.url)
+				start, err := s.timeSeriesService.GetLatestDataPointTimestamp(context.Background())
+				err = s.scraper.FetchData(time.Unix(start, 0), time.Now())
 				if err != nil {
 					return
 				}

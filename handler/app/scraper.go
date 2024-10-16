@@ -6,5 +6,5 @@ import (
 )
 
 func (a *application) InitScraper(r influxdb.Repository) services.ScraperService {
-	return services.NewScraperService(r)
+	return services.NewScraperService(r, a.config.App.ApiUrl)
 }

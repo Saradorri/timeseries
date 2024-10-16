@@ -5,6 +5,6 @@ import (
 	"edgecom.ai/timeseries/internal/services"
 )
 
-func (a *application) InitScheduler(service services.ScraperService) scheduler.Scheduler {
-	return scheduler.NewScheduler(a.config.App.ApiUrl, a.config.App.ScheduleIntervalMinute, service)
+func (a *application) InitScheduler(scraper services.ScraperService, ts services.TimeSeriesService) scheduler.Scheduler {
+	return scheduler.NewScheduler(a.config.App.ScheduleIntervalMinute, scraper, ts)
 }
