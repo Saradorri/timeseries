@@ -13,10 +13,10 @@ type Bootstrap interface {
 
 type bootstrap struct {
 	url     string
-	service services.TimeSeriesService
+	service services.TimeSeriesScraperService
 }
 
-func NewBootstrap(url string, service services.TimeSeriesService) Bootstrap {
+func NewBootstrap(url string, service services.TimeSeriesScraperService) Bootstrap {
 	return &bootstrap{
 		url:     url,
 		service: service,

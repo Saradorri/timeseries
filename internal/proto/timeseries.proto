@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package time_series;
+package timeseries;
 
-option go_package = "timeseriespb";
+option go_package = "/pb";
 
 service TimeSeriesService {
   rpc QueryData (QueryRequest) returns (QueryResponse) {}

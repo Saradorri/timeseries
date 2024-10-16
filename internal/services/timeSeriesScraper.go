@@ -9,11 +9,11 @@ import (
 	"strconv"
 )
 
-type TimeSeriesService interface {
+type TimeSeriesScraperService interface {
 	FetchData(endpoint string)
 }
 
-type timeSeriesService struct {
+type timeSeriesScraperService struct {
 	client *http.Client
 }
 
@@ -28,13 +28,13 @@ type responseData struct {
 	Result []TimeSeriesData `json:"result"`
 }
 
-func NewTimeSeriesService() TimeSeriesService {
-	return &timeSeriesService{
+func NewTimeSeriesScraperService() TimeSeriesScraperService {
+	return &timeSeriesScraperService{
 		&http.Client{},
 	}
 }
 
-func (s *timeSeriesService) FetchData(endpoint string) {
+func (s *timeSeriesScraperService) FetchData(endpoint string) {
 	log.Println("Fetching time series data from API...")
 
 	response, err := s.client.Get(endpoint)

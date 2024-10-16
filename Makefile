@@ -1,11 +1,11 @@
 PROTO_DIR = internal/proto
-OUT_DIR = internal/proto
+OUT_DIR =  internal/proto
 
 PROTO_FILES = $(wildcard $(PROTO_DIR)/*.proto)
 
 .PHONY: proto
 proto:
-	@echo "Generating gRPC code..."
+	@echo "Generating gRPC proto..."
 	@protoc --go_out=$(OUT_DIR) --go-grpc_out=$(OUT_DIR) --proto_path=$(PROTO_DIR) $(PROTO_FILES)
 	@echo "gRPC code generation complete."
 
