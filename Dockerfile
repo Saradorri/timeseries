@@ -15,10 +15,8 @@ FROM alpine:latest
 WORKDIR /app
 
 ARG APP_GRPC_PORT=5050
-ARG APP_METRIC_PORT=2112
 
 EXPOSE ${APP_GRPC_PORT}
-EXPOSE ${APP_METRIC_PORT}
 
 COPY --from=builder /app/cmd/api/grpc_server /app/
 

@@ -30,6 +30,6 @@ func (b *bootstrap) InitializeHistoricalData() {
 
 	err := b.service.FetchData(twoYearsAgo, now)
 	if err != nil {
-		return
+		log.Println(err)
 	}
 }

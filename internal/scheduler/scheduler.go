@@ -33,9 +33,12 @@ func (s *scheduler) StartScheduler() {
 			case <-s.ticker.C:
 				log.Println("Fetching new data...")
 				start, err := s.timeSeriesService.GetLatestDataPointTimestamp(context.Background())
+				if err != nil {
+					log.Println(err)
+				}
 				err = s.scraper.FetchData(time.Unix(start, 0), time.Now())
 				if err != nil {
-					return
+					log.Panic(err)
 				}
 			}
 		}

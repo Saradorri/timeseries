@@ -8,6 +8,6 @@ type TimeSeriesQuery struct {
 }
 
 type TimeSeriesData struct {
-	Timestamp int64
-	Value     float64
+	Time  int64
+	Value float64
 }

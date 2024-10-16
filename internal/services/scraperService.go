@@ -31,10 +31,10 @@ func NewScraperService(r influxdb.Repository, baseUrl string) ScraperService {
 }
 
 func (s *scraperService) FetchData(start, end time.Time) error {
-	log.Println("Fetching time series data from API...")
-
 	timeFormat := "2006-01-02T15:04:05"
 	u := fmt.Sprintf("%s?start=%s&end=%s", s.baseUrl, start.Format(timeFormat), end.Format(timeFormat))
+
+	log.Printf("Fetching time series data from API ... [%s - %s]", start.Format(timeFormat), end.Format(timeFormat))
 
 	response, err := s.client.Get(u)
 	if err != nil {
@@ -57,6 +57,7 @@ func (s *scraperService) FetchData(start, end time.Time) error {
 
 	err = s.repository.WriteData(context.Background(), apiResponse.Result)
 	if err != nil {
+		log.Printf("Error writing data: %v", err)
 		return err
 	}
 	return nil

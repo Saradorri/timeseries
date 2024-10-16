@@ -5,6 +5,7 @@ import (
 	"edgecom.ai/timeseries/pkg/models"
 	"fmt"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"log"
 	"time"
 )
 
@@ -28,15 +29,17 @@ func (r *influxDBRepository) WriteData(ctx context.Context, data []models.TimeSe
 	measurement := "time_series_data"
 	writeAPI := r.Client.WriteAPIBlocking(r.org, r.bucket)
 	for _, point := range data {
+		log.Println("point in db writing", point.Time)
 		p := influxdb2.NewPointWithMeasurement(measurement).
 			AddTag("source", "api").
 			AddField("value", point.Value).
-			SetTime(time.Unix(point.Timestamp, 0))
+			SetTime(time.Unix(point.Time, 0))
 
 		if err := writeAPI.WritePoint(ctx, p); err != nil {
 			return fmt.Errorf("failed to write point to InfluxDB: %w", err)
 		}
 	}
+	log.Println("Finished writing data to InfluxDB")
 	return nil
 }
 
@@ -57,8 +60,8 @@ func (r *influxDBRepository) QueryData(ctx context.Context, q models.TimeSeriesQ
 		value := result.Record().Value().(float64)
 		timestamp := result.Record().Time().Unix()
 		results = append(results, models.TimeSeriesData{
-			Timestamp: timestamp,
-			Value:     value,
+			Time:  timestamp,
+			Value: value,
 		})
 	}
 

@@ -7,26 +7,36 @@ services:
       dockerfile: Dockerfile
     container_name: grpc_service
     ports:
-      - "${APP_GRPC_PORT}:${APP_GRPC_PORT}"
-      - "${APP_METRIC_PORT}:${APP_METRIC_PORT}"
-
+      - "${APP_GRPC_PORT:-5050}:5050"
     depends_on:
-      - prometheus
+      - influxdb
     environment:
-      - PROMETHEUS_URL=http://prometheus:9090
+      - INFLUXDB_URL=http://influxdb:8086
     networks:
       - app-network
 
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    volumes:
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+  influxdb:
+    image: influxdb:latest
+    container_name: influxdb
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=adminadmin
+      - DOCKER_INFLUXDB_INIT_ORG=ai
+      - DOCKER_INFLUXDB_INIT_BUCKET=ts
+      - DOCKER_INFLUXDB_INIT_RETENTION=0
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=BdoVP09wv7D3aGS0rv3b3BuARTqsh5SaebSzv8PsJwyACiwBYY9dlDRl1ZhozQ4XJiwgGRdu9XyE1P01xVBo-g==
     ports:
-      - "9090:9090"
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
     networks:
       - app-network
+
+volumes:
+  influxdb_data:
 
 networks:
   app-network:
     driver: bridge
+

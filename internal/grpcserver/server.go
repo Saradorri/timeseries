@@ -58,7 +58,7 @@ func (s *grpcServer) QueryData(ctx context.Context, req *tpb.QueryRequest) (*tpb
 	response := &tpb.QueryResponse{}
 	for _, result := range result {
 		tsData := &tpb.TimeSeriesData{
-			Time:  result.Timestamp,
+			Time:  result.Time,
 			Value: result.Value,
 		}
 		response.Data = append(response.Data, tsData)
