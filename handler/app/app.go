@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"edgecom.ai/timeseries/internal/bootstrap"
+	"edgecom.ai/timeseries/internal/grpcserver"
 	"edgecom.ai/timeseries/internal/scheduler"
 	"edgecom.ai/timeseries/utils"
 	"go.uber.org/fx"
@@ -37,12 +38,18 @@ func (a *application) Setup() {
 		fx.Provide(
 			a.InitPrometheus,
 			a.InitBootstrap,
-			a.InitServices,
+			a.InitScraper,
 			a.InitScheduler,
+			a.InitServer,
+			a.InitService,
 		),
-		fx.Invoke(func(bootstrap bootstrap.Bootstrap, scheduler scheduler.Scheduler) {
+		fx.Invoke(func(bootstrap bootstrap.Bootstrap, scheduler scheduler.Scheduler, server grpcserver.GrpcServer) {
 			bootstrap.InitializeHistoricalData()
 			scheduler.StartScheduler()
+			err := server.StartServer()
+			if err != nil {
+				return
+			}
 		}),
 	)
 	app.Run()

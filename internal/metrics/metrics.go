@@ -46,7 +46,7 @@ func init() {
 func StartServer(port int) {
 	http.Handle("/metrics", promhttp.Handler())
 	go func() {
-		if err := http.ListenAndServe(strconv.Itoa(port), nil); err != nil {
+		if err := http.ListenAndServe(":"+strconv.Itoa(port), nil); err != nil {
 			log.Fatalf("Error starting metrics server: %v", err)
 		}
 		log.Printf("Metrics server started on port %d", port)
