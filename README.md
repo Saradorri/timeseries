@@ -32,12 +32,12 @@ docker-compose up --build
 ```
 
 ### Configuration
-Configure your API endpoint and other settings in the config.yml file.
+Configure your API endpoint and other settings in the `config.yml` file.
 
 ### Usage
-The gRPC server will be available on the specified port (default: 5050).
-Metrics can be accessed at /metrics on the specified port (default: 2112).
+- The gRPC server will be available on the specified port (default: **5050**).
+- Metrics can be accessed at `/metrics` on the specified port (default: **2112**).
 
 ### API Endpoints
 - gRPC: The service provides a gRPC interface for querying time-series data.
-- Metrics: The service exposes metrics for monitoring at the /metrics endpoint.
+- Metrics: The service exposes metrics for monitoring at the `/metrics` endpoint.
