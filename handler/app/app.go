@@ -36,12 +36,12 @@ func (a *application) Setup() {
 
 	app := fx.New(
 		fx.Provide(
-			a.InitPrometheus,
 			a.InitBootstrap,
 			a.InitScraper,
 			a.InitScheduler,
 			a.InitServer,
 			a.InitService,
+			a.InitInfluxDB,
 		),
 		fx.Invoke(func(bootstrap bootstrap.Bootstrap, scheduler scheduler.Scheduler, server grpcserver.GrpcServer) {
 			bootstrap.InitializeHistoricalData()

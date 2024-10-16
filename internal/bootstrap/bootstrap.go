@@ -13,10 +13,10 @@ type Bootstrap interface {
 
 type bootstrap struct {
 	url     string
-	service services.TimeSeriesScraperService
+	service services.ScraperService
 }
 
-func NewBootstrap(url string, service services.TimeSeriesScraperService) Bootstrap {
+func NewBootstrap(url string, service services.ScraperService) Bootstrap {
 	return &bootstrap{
 		url:     url,
 		service: service,
@@ -32,5 +32,8 @@ func (b *bootstrap) InitializeHistoricalData() {
 
 	u := fmt.Sprintf("%s?start=%s&end=%s", b.url, twoYearsAgo.Format(timeFormat), now.Format(timeFormat))
 
-	b.service.FetchData(u)
+	err := b.service.FetchData(u)
+	if err != nil {
+		return
+	}
 }

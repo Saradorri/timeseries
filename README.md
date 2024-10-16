@@ -1,11 +1,11 @@
 # Time-Series Data Service
 
-A Golang-based time-series data service that fetches data from an external API, stores it in time series DB, and exposes it via a gRPC API. The service support Prometheus for time-series data storage.
+A Golang-based time-series data service that fetches data from an external API, stores it in time series DB, and exposes it via a gRPC API. The service support InfluxDB for time-series data storage.
 
 ## Features
 
 - Fetches time-series data from a provided API.
-- Stores data in Prometheus.
+- Stores data in InfluxDB.
 - Updates data in dynamic interval (default: every 5 min) using a scheduler.
 - Exposes a gRPC API for querying time-series data.
 
@@ -36,8 +36,6 @@ Configure your API endpoint and other settings in the `config.yml` file.
 
 ### Usage
 - The gRPC server will be available on the specified port (default: **5050**).
-- Metrics can be accessed at `/metrics` on the specified port (default: **2112**).
 
 ### API Endpoints
 - gRPC: The service provides a gRPC interface for querying time-series data.
-- Metrics: The service exposes metrics for monitoring at the `/metrics` endpoint.

@@ -13,10 +13,10 @@ type Scheduler interface {
 type scheduler struct {
 	ticker  *time.Ticker
 	url     string
-	service services.TimeSeriesScraperService
+	service services.ScraperService
 }
 
-func NewScheduler(apiUrl string, interval int, service services.TimeSeriesScraperService) Scheduler {
+func NewScheduler(apiUrl string, interval int, service services.ScraperService) Scheduler {
 	ticker := time.NewTicker(time.Duration(interval) * time.Minute)
 	return &scheduler{
 		ticker:  ticker,
@@ -31,7 +31,10 @@ func (s *scheduler) StartScheduler() {
 			select {
 			case <-s.ticker.C:
 				log.Println("Fetching new data...")
-				s.service.FetchData(s.url)
+				err := s.service.FetchData(s.url)
+				if err != nil {
+					return
+				}
 			}
 		}
 	}()

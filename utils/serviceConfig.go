@@ -13,6 +13,12 @@ type app struct {
 }
 
 type database struct {
-	ScrapeURL string `mapstructure:"scrape_url"`
-	JobName   string `mapstructure:"job_name"`
+	InfluxDB influxdb `mapstructure:"influxdb"`
+}
+
+type influxdb struct {
+	Url    string `mapstructure:"url"`
+	Token  string `mapstructure:"token"`
+	Org    string `mapstructure:"org"`
+	Bucket string `mapstructure:"bucket"`
 }

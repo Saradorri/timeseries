@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"edgecom.ai/timeseries/internal/repository/prometheus"
+	"edgecom.ai/timeseries/internal/repository/influxdb"
 	"edgecom.ai/timeseries/pkg/models"
 )
 
@@ -11,15 +11,15 @@ type TimeSeriesService interface {
 }
 
 type timeSeriesService struct {
-	repository prometheus.Repository
+	repository influxdb.Repository
 }
 
-func NewTimeSeriesService(r prometheus.Repository) TimeSeriesService {
+func NewTimeSeriesService(r influxdb.Repository) TimeSeriesService {
 	return &timeSeriesService{
 		repository: r,
 	}
 }
 
 func (ts *timeSeriesService) GetByQuery(ctx context.Context, q models.TimeSeriesQuery) ([]models.TimeSeriesData, error) {
-	return ts.repository.Query(ctx, q)
+	return ts.repository.QueryData(ctx, q)
 }

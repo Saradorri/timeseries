@@ -1,9 +1,12 @@
 app:
   grpc_port: 5050
-  metric_port: 2112
   schedule_interval_min: 5
   api_url: "https://api.edgecomenergy.net/core/asset/3662953a-1396-4996-a1b6-99a0c5e7a5de/series"
 
 database:
-  scrape_url: "http://prometheus:9090"
-  job_name: "prometheus"
+  influxdb:
+    url: "http://influxdb:8086"
+    token: "token"
+    org: "org"
+    bucket: "bucket"
+

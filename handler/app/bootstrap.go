@@ -5,6 +5,6 @@ import (
 	"edgecom.ai/timeseries/internal/services"
 )
 
-func (a *application) InitBootstrap(service services.TimeSeriesScraperService) bootstrap.Bootstrap {
+func (a *application) InitBootstrap(service services.ScraperService) bootstrap.Bootstrap {
 	return bootstrap.NewBootstrap(a.config.App.ApiUrl, service)
 }
