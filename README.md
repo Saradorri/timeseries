@@ -26,9 +26,10 @@ cd timeseries
 ```
 
 2. Build and run the services using Docker Compose:
+(use .env.example file to create your own .env file)
 
 ```bash
-docker-compose up --build
+docker-compose --env-file `path/to/your/.env` up --build
 ```
 
 ### Configuration
