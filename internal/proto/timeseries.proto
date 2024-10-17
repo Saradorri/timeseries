@@ -8,11 +8,23 @@ service TimeSeriesService {
   rpc QueryData (QueryRequest) returns (QueryResponse) {}
 }
 
+enum QueryStatus {
+  SUCCESS = 0;
+  ERROR = 1;
+}
+
 message QueryRequest {
   int64 start = 1;
   int64 end = 2;
   string window = 3;
   string aggregation = 4;
+}
+
+message QueryMetadata {
+  string window = 1;
+  string aggregation = 2;
+  QueryStatus status = 3;
+  string message = 4;
 }
 
 message TimeSeriesData {
@@ -21,5 +33,6 @@ message TimeSeriesData {
 }
 
 message QueryResponse {
-  repeated TimeSeriesData data = 1;
+  QueryMetadata meta = 1;
+  repeated TimeSeriesData data = 2;
 }
