@@ -44,14 +44,6 @@ func (s *grpcServer) StartServer() error {
 }
 
 func (s *grpcServer) QueryData(ctx context.Context, req *tpb.QueryRequest) (*tpb.QueryResponse, error) {
-	response := &tpb.QueryResponse{
-		Meta: &tpb.QueryMetadata{
-			Aggregation: req.Aggregation,
-			Window:      req.Window,
-			Status:      tpb.QueryStatus_ERROR,
-		},
-	}
-
 	result, err := s.service.GetByQuery(ctx, models.TimeSeriesQuery{
 		Start:       req.Start,
 		End:         req.End,
@@ -60,25 +52,13 @@ func (s *grpcServer) QueryData(ctx context.Context, req *tpb.QueryRequest) (*tpb
 	})
 
 	if err != nil {
-		response.Meta.Message = err.Error()
-		return response, err
+		log.Printf("Error fetching data with query: %v", err)
+		return &tpb.QueryResponse{
+			Meta: &tpb.QueryMetadata{
+				Message: fmt.Sprintf("Error retrieving data: %v", err),
+				Status:  tpb.QueryStatus_ERROR,
+			},
+		}, err
 	}
-
-	for _, result := range result {
-		tsData := &tpb.TimeSeriesData{
-			Time:  result.Time,
-			Value: result.Value,
-		}
-		response.Data = append(response.Data, tsData)
-	}
-
-	if len(result) > 0 {
-		response.Meta.Status = tpb.QueryStatus_SUCCESS
-		response.Meta.Message = "Query executed successfully"
-	} else {
-		response.Meta.Status = tpb.QueryStatus_ERROR
-		response.Meta.Message = "No data found for the given parameters"
-	}
-
-	return response, nil
+	return toProtoResponse(result, req.Aggregation, req.Window), nil
 }
