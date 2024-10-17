@@ -36,16 +36,24 @@ func (a *application) Setup() {
 
 	app := fx.New(
 		fx.Provide(
+			a.InitInfluxDB,
 			a.InitBootstrap,
 			a.InitScraper,
 			a.InitScheduler,
 			a.InitServer,
 			a.InitService,
-			a.InitInfluxDB,
 		),
 		fx.Invoke(func(bootstrap bootstrap.Bootstrap, scheduler scheduler.Scheduler, server grpcserver.GrpcServer) {
-			bootstrap.InitializeHistoricalData()
-			scheduler.StartScheduler()
+			done := make(chan bool)
+			go func() {
+				bootstrap.InitializeHistoricalData()
+				done <- true
+			}()
+			go func() {
+				<-done
+				log.Println("Bootstrap completed, starting the scheduler...")
+				scheduler.StartScheduler()
+			}()
 			err := server.StartServer()
 			if err != nil {
 				return

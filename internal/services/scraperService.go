@@ -1,11 +1,11 @@
 package services
 
 import (
+	"context"
 	"edgecom.ai/timeseries/internal/repository/influxdb"
 	"edgecom.ai/timeseries/pkg/models"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/net/context"
 	"io"
 	"log"
 	"net/http"
@@ -13,7 +13,8 @@ import (
 )
 
 type ScraperService interface {
-	FetchData(start, end time.Time) error
+	FetchData(start, end time.Time, dataCh chan []models.TimeSeriesData) error
+	StoreData(data []models.TimeSeriesData)
 }
 
 type scraperService struct {
@@ -30,7 +31,7 @@ func NewScraperService(r influxdb.Repository, baseUrl string) ScraperService {
 	return &scraperService{&http.Client{}, r, baseUrl}
 }
 
-func (s *scraperService) FetchData(start, end time.Time) error {
+func (s *scraperService) FetchData(start, end time.Time, dataCh chan []models.TimeSeriesData) error {
 	timeFormat := "2006-01-02T15:04:05"
 	u := fmt.Sprintf("%s?start=%s&end=%s", s.baseUrl, start.Format(timeFormat), end.Format(timeFormat))
 
@@ -42,23 +43,23 @@ func (s *scraperService) FetchData(start, end time.Time) error {
 		return err
 	}
 	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Printf("Error reading data: %v", err)
+		if err := Body.Close(); err != nil {
+			log.Printf("Error closing response body: %v", err)
 		}
 	}(response.Body)
 
 	var apiResponse ResponseData
-
 	if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
 		log.Printf("Error decoding API response: %v", err)
 		return err
 	}
 
-	err = s.repository.WriteData(context.Background(), apiResponse.Result)
-	if err != nil {
-		log.Printf("Error writing data: %v", err)
-		return err
-	}
+	dataCh <- apiResponse.Result
 	return nil
+}
+
+func (s *scraperService) StoreData(data []models.TimeSeriesData) {
+	if err := s.repository.WriteData(context.Background(), data); err != nil {
+		log.Printf("Error writing data: %v", err)
+	}
 }

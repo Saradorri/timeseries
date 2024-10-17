@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"edgecom.ai/timeseries/internal/services"
+	"edgecom.ai/timeseries/pkg/models"
 	"log"
 	"time"
 )
@@ -31,16 +32,34 @@ func (s *scheduler) StartScheduler() {
 		for {
 			select {
 			case <-s.ticker.C:
-				log.Println("Fetching new data...")
-				start, err := s.timeSeriesService.GetLatestDataPointTimestamp(context.Background())
-				if err != nil {
-					log.Println(err)
-				}
-				err = s.scraper.FetchData(time.Unix(start, 0), time.Now())
-				if err != nil {
-					log.Panic(err)
-				}
+				log.Println("Scheduler Started...")
+				s.runDataFetching()
 			}
 		}
 	}()
+}
+
+func (s *scheduler) runDataFetching() {
+	start, err := s.timeSeriesService.GetLatestDataPointTimestamp(context.Background())
+	if err != nil {
+		log.Printf("Error fetching latest data point timestamp: %v", err)
+		return
+	}
+
+	end := time.Now()
+	dataCh := make(chan []models.TimeSeriesData)
+	defer close(dataCh)
+
+	go func() {
+		for data := range dataCh {
+			s.scraper.StoreData(data)
+		}
+	}()
+
+	err = s.scraper.FetchData(time.Unix(start, 0), end, dataCh)
+	if err != nil {
+		log.Printf("Error fetching data: %v", err)
+		return
+	}
+	log.Println("Data scheduler finished successfully.")
 }

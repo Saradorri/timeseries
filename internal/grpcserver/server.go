@@ -39,7 +39,7 @@ func (s *grpcServer) StartServer() error {
 	server := grpc.NewServer()
 	tpb.RegisterTimeSeriesServiceServer(server, s)
 
-	log.Printf("gRPC grpcServer running on port %d", s.port)
+	log.Printf("gRPC server running on port %d", s.port)
 	return server.Serve(lis)
 }
 

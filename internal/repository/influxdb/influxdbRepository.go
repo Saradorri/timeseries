@@ -38,7 +38,6 @@ func (r *influxDBRepository) WriteData(ctx context.Context, data []models.TimeSe
 			return fmt.Errorf("failed to write point to InfluxDB: %w", err)
 		}
 	}
-	log.Println("Finished writing data to InfluxDB")
 	return nil
 }
 
