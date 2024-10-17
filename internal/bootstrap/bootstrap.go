@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"context"
 	"edgecom.ai/timeseries/internal/services"
 	"edgecom.ai/timeseries/pkg/models"
 	"log"
@@ -51,7 +52,7 @@ func (b *bootstrap) InitializeHistoricalData() {
 		}
 		go func(start, end time.Time) {
 			defer wg.Done()
-			if err := b.service.FetchData(start, end, ch); err != nil {
+			if err := b.service.FetchData(context.Background(), start, end, ch); err != nil {
 				log.Printf("Error fetching data: %v", err)
 			}
 		}(startChunk, endChunk)

@@ -13,8 +13,8 @@ import (
 )
 
 type ScraperService interface {
-	FetchData(start, end time.Time, dataCh chan []models.TimeSeriesData) error
-	StoreData(data []models.TimeSeriesData)
+	FetchData(ctx context.Context, start, end time.Time, dataCh chan []models.TimeSeriesData) error
+	StoreData(data []models.TimeSeriesData) error
 }
 
 type scraperService struct {
@@ -31,13 +31,15 @@ func NewScraperService(r influxdb.Repository, baseUrl string) ScraperService {
 	return &scraperService{&http.Client{}, r, baseUrl}
 }
 
-func (s *scraperService) FetchData(start, end time.Time, dataCh chan []models.TimeSeriesData) error {
+func (s *scraperService) FetchData(ctx context.Context, start, end time.Time, dataCh chan []models.TimeSeriesData) error {
 	timeFormat := "2006-01-02T15:04:05"
 	u := fmt.Sprintf("%s?start=%s&end=%s", s.baseUrl, start.Format(timeFormat), end.Format(timeFormat))
 
 	log.Printf("Fetching time series data from API ... [%s - %s]", start.Format(timeFormat), end.Format(timeFormat))
 
-	response, err := s.client.Get(u)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	response, err := s.client.Do(req)
+
 	if err != nil {
 		log.Printf("Error fetching data: %v", err)
 		return err
@@ -58,8 +60,10 @@ func (s *scraperService) FetchData(start, end time.Time, dataCh chan []models.Ti
 	return nil
 }
 
-func (s *scraperService) StoreData(data []models.TimeSeriesData) {
+func (s *scraperService) StoreData(data []models.TimeSeriesData) error {
 	if err := s.repository.WriteData(context.Background(), data); err != nil {
 		log.Printf("Error writing data: %v", err)
+		return err
 	}
+	return nil
 }

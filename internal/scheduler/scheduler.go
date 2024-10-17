@@ -56,7 +56,7 @@ func (s *scheduler) runDataFetching() {
 		}
 	}()
 
-	err = s.scraper.FetchData(time.Unix(start, 0), end, dataCh)
+	err = s.scraper.FetchData(context.Background(), time.Unix(start, 0), end, dataCh)
 	if err != nil {
 		log.Printf("Error fetching data: %v", err)
 		return
