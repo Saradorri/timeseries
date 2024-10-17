@@ -30,7 +30,8 @@ func RangeQuery(q models.TimeSeriesQuery, bucket, measurement string) (string, e
         from(bucket: "%s")
         |> range(start: %s, stop: %s)
         |> filter(fn: (r) => r._measurement == "%s")
-        |> aggregateWindow(every: %s, fn: %s)
+        |> filter(fn: (r) => r["_field"] == "value")
+        |> aggregateWindow(every: %s, fn: %s, createEmpty: false)
         |> yield(name: "result")
     `,
 		bucket,

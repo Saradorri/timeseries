@@ -29,7 +29,6 @@ func (r *influxDBRepository) WriteData(ctx context.Context, data []models.TimeSe
 	measurement := "time_series_data"
 	writeAPI := r.Client.WriteAPIBlocking(r.org, r.bucket)
 	for _, point := range data {
-		log.Println("point in db writing", point.Time)
 		p := influxdb2.NewPointWithMeasurement(measurement).
 			AddTag("source", "api").
 			AddField("value", point.Value).
@@ -44,7 +43,8 @@ func (r *influxDBRepository) WriteData(ctx context.Context, data []models.TimeSe
 }
 
 func (r *influxDBRepository) QueryData(ctx context.Context, q models.TimeSeriesQuery) ([]models.TimeSeriesData, error) {
-	query, err := RangeQuery(q, r.bucket, q.Aggregation)
+	measurement := "time_series_data"
+	query, err := RangeQuery(q, r.bucket, measurement)
 
 	if err != nil {
 		return nil, fmt.Errorf("query error: %w", err)
@@ -57,18 +57,28 @@ func (r *influxDBRepository) QueryData(ctx context.Context, q models.TimeSeriesQ
 
 	var results []models.TimeSeriesData
 	for result.Next() {
-		value := result.Record().Value().(float64)
+		if result.Err() != nil {
+			return nil, fmt.Errorf("query error: %v", result.Err())
+		}
+
 		timestamp := result.Record().Time().Unix()
+		value := result.Record().Value()
+
+		if value == nil {
+			log.Printf("Warning: Got nil value for timestamp: %v", timestamp)
+			continue
+		}
+
+		floatValue, ok := value.(float64)
+		if !ok {
+			return nil, fmt.Errorf("unexpected value type: %T", value)
+		}
+
 		results = append(results, models.TimeSeriesData{
 			Time:  timestamp,
-			Value: value,
+			Value: floatValue,
 		})
 	}
-
-	if result.Err() != nil {
-		return nil, result.Err()
-	}
-
 	return results, nil
 }
 
