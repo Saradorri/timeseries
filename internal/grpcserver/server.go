@@ -5,6 +5,7 @@ import (
 	tpb "edgecom.ai/timeseries/internal/proto/pb"
 	"edgecom.ai/timeseries/internal/services"
 	"edgecom.ai/timeseries/pkg/models"
+	"edgecom.ai/timeseries/pkg/validation"
 	"fmt"
 	"google.golang.org/grpc"
 	"log"
@@ -44,12 +45,24 @@ func (s *grpcServer) StartServer() error {
 }
 
 func (s *grpcServer) QueryData(ctx context.Context, req *tpb.QueryRequest) (*tpb.QueryResponse, error) {
-	result, err := s.service.GetByQuery(ctx, models.TimeSeriesQuery{
+
+	m := models.TimeSeriesQuery{
 		Start:       req.Start,
 		End:         req.End,
 		Window:      req.Window,
 		Aggregation: req.Aggregation,
-	})
+	}
+	err := validation.ValidateQueryRequest(m)
+	if err != nil {
+		log.Printf("Validation error: %v", err)
+		return &tpb.QueryResponse{
+			Meta: &tpb.QueryMetadata{
+				Message: fmt.Sprintf("Validation error: %v", err),
+				Status:  tpb.QueryStatus_ERROR,
+			},
+		}, err
+	}
+	result, err := s.service.GetByQuery(ctx, m)
 
 	if err != nil {
 		log.Printf("Error fetching data with query: %v", err)
