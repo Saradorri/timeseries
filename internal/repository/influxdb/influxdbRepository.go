@@ -2,6 +2,7 @@ package influxdb
 
 import (
 	"context"
+	"edgecom.ai/timeseries/internal/repository"
 	"edgecom.ai/timeseries/pkg/models"
 	"fmt"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -9,23 +10,17 @@ import (
 	"time"
 )
 
-type Repository interface {
-	WriteData(ctx context.Context, data []models.TimeSeriesData) error
-	QueryData(ctx context.Context, query models.TimeSeriesQuery) ([]models.TimeSeriesData, error)
-	GetLatestDataPointTimestamp(ctx context.Context) (int64, error)
-}
-
 type influxDBRepository struct {
 	*InfluxDBClient
 	org    string
 	bucket string
 }
 
-func NewRepository(c *InfluxDBClient, org, bucket string) Repository {
+func NewRepository(c *InfluxDBClient, org, bucket string) repository.Repository {
 	return &influxDBRepository{c, org, bucket}
 }
 
-func (r *influxDBRepository) WriteData(ctx context.Context, data []models.TimeSeriesData) error {
+func (r *influxDBRepository) WriteData(ctx context.Context, data models.TimeSeriesResult) error {
 	measurement := "time_series_data"
 	writeAPI := r.Client.WriteAPIBlocking(r.org, r.bucket)
 	for _, point := range data {
@@ -41,7 +36,7 @@ func (r *influxDBRepository) WriteData(ctx context.Context, data []models.TimeSe
 	return nil
 }
 
-func (r *influxDBRepository) QueryData(ctx context.Context, q models.TimeSeriesQuery) ([]models.TimeSeriesData, error) {
+func (r *influxDBRepository) QueryData(ctx context.Context, q models.TimeSeriesQuery) (models.TimeSeriesResult, error) {
 	measurement := "time_series_data"
 	query, err := RangeQuery(q, r.bucket, measurement)
 
@@ -54,7 +49,7 @@ func (r *influxDBRepository) QueryData(ctx context.Context, q models.TimeSeriesQ
 		return nil, fmt.Errorf("query error: %w", err)
 	}
 
-	var results []models.TimeSeriesData
+	var results models.TimeSeriesResult
 	for result.Next() {
 		if result.Err() != nil {
 			return nil, fmt.Errorf("query error: %v", result.Err())

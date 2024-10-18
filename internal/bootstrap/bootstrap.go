@@ -33,12 +33,15 @@ func (b *bootstrap) InitializeHistoricalData() {
 	start := stop.AddDate(-2, 0, 0)
 	chunkSize := 24 * time.Hour
 
-	ch := make(chan []models.TimeSeriesData)
+	ch := make(chan models.TimeSeriesResult)
 	defer close(ch)
 
 	go func() {
 		for data := range ch {
-			b.service.StoreData(data)
+			err := b.service.StoreData(data)
+			if err != nil {
+				log.Printf("Error storing data: %v", err)
+			}
 		}
 	}()
 

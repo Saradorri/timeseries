@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"edgecom.ai/timeseries/internal/repository/influxdb"
+	"edgecom.ai/timeseries/internal/repository"
 	"edgecom.ai/timeseries/pkg/models"
 	"encoding/json"
 	"fmt"
@@ -13,25 +13,25 @@ import (
 )
 
 type ScraperService interface {
-	FetchData(ctx context.Context, start, end time.Time, dataCh chan []models.TimeSeriesData) error
-	StoreData(data []models.TimeSeriesData) error
+	FetchData(ctx context.Context, start, end time.Time, dataCh chan models.TimeSeriesResult) error
+	StoreData(data models.TimeSeriesResult) error
 }
 
 type scraperService struct {
 	client     *http.Client
-	repository influxdb.Repository
+	repository repository.Repository
 	baseUrl    string
 }
 
 type ResponseData struct {
-	Result []models.TimeSeriesData `json:"result"`
+	Result models.TimeSeriesResult `json:"result"`
 }
 
-func NewScraperService(r influxdb.Repository, baseUrl string) ScraperService {
+func NewScraperService(r repository.Repository, baseUrl string) ScraperService {
 	return &scraperService{&http.Client{}, r, baseUrl}
 }
 
-func (s *scraperService) FetchData(ctx context.Context, start, end time.Time, dataCh chan []models.TimeSeriesData) error {
+func (s *scraperService) FetchData(ctx context.Context, start, end time.Time, dataCh chan models.TimeSeriesResult) error {
 	timeFormat := "2006-01-02T15:04:05"
 	u := fmt.Sprintf("%s?start=%s&end=%s", s.baseUrl, start.Format(timeFormat), end.Format(timeFormat))
 
@@ -60,7 +60,7 @@ func (s *scraperService) FetchData(ctx context.Context, start, end time.Time, da
 	return nil
 }
 
-func (s *scraperService) StoreData(data []models.TimeSeriesData) error {
+func (s *scraperService) StoreData(data models.TimeSeriesResult) error {
 	if err := s.repository.WriteData(context.Background(), data); err != nil {
 		log.Printf("Error writing data: %v", err)
 		return err

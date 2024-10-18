@@ -47,12 +47,15 @@ func (s *scheduler) runDataFetching() {
 	}
 
 	end := time.Now()
-	dataCh := make(chan []models.TimeSeriesData)
+	dataCh := make(chan models.TimeSeriesResult)
 	defer close(dataCh)
 
 	go func() {
 		for data := range dataCh {
-			s.scraper.StoreData(data)
+			err := s.scraper.StoreData(data)
+			if err != nil {
+				log.Printf("Error storing data: %v", err)
+			}
 		}
 	}()
 

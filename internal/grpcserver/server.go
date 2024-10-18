@@ -60,5 +60,5 @@ func (s *grpcServer) QueryData(ctx context.Context, req *tpb.QueryRequest) (*tpb
 			},
 		}, err
 	}
-	return toProtoResponse(result, req.Aggregation, req.Window), nil
+	return result.ToProtoResponse(req.Aggregation, req.Window), nil
 }
