@@ -6,7 +6,7 @@ app:
 database:
   influxdb:
     url: "http://influxdb:8086"
-    token: "token"
-    org: "org"
-    bucket: "bucket"
+    token: "your_token"
+    org: "your_org"
+    bucket: "your_bucket"
 
