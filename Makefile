@@ -22,3 +22,12 @@ run:
 .PHONY: build
 build:
 	@go build -o bin/timeseries cmd/api/main.go
+
+MOCK_DIR=mocks
+
+.PHONY: mock
+mock:
+	@echo "Generating mock for repository..."
+	mockgen -source=internal/repository/repository.go -destination=$(MOCK_DIR)/repository/mock_repository.go -package=mocks
+	mockgen -source=internal/services/scraperService.go -destination=$(MOCK_DIR)/services/mock_scraper_service.go -package=mocks
+	mockgen -source=internal/services/timeSeriesService.go -destination=$(MOCK_DIR)/services/mock_timeseries_service.go -package=mocks
