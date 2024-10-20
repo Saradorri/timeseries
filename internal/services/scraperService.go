@@ -5,6 +5,7 @@ import (
 	"edgecom.ai/timeseries/internal/repository"
 	"edgecom.ai/timeseries/pkg/models"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,7 +15,7 @@ import (
 
 type ScraperService interface {
 	FetchData(ctx context.Context, start, end time.Time, dataCh chan models.TimeSeriesResult) error
-	StoreData(data models.TimeSeriesResult) error
+	StoreData(ctx context.Context, data models.TimeSeriesResult) error
 }
 
 type scraperService struct {
@@ -35,35 +36,42 @@ func (s *scraperService) FetchData(ctx context.Context, start, end time.Time, da
 	timeFormat := "2006-01-02T15:04:05"
 	u := fmt.Sprintf("%s?start=%s&end=%s", s.baseUrl, start.Format(timeFormat), end.Format(timeFormat))
 
-	log.Printf("Fetching time series data from API ... [%s - %s]", start.Format(timeFormat), end.Format(timeFormat))
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-	response, err := s.client.Do(req)
-
 	if err != nil {
-		log.Printf("Error fetching data: %v", err)
-		return err
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	response, err := s.client.Do(req)
+	if err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return fmt.Errorf("fetch data timeout: %w", err)
+		}
+		return fmt.Errorf("failed to fetch data: %w", err)
 	}
 	defer func(Body io.ReadCloser) {
-		if err := Body.Close(); err != nil {
-			log.Printf("Error closing response body: %v", err)
+		err := Body.Close()
+		if err != nil {
+			log.Println("failed to close response body")
 		}
 	}(response.Body)
 
 	var apiResponse ResponseData
 	if err := json.NewDecoder(response.Body).Decode(&apiResponse); err != nil {
-		log.Printf("Error decoding API response: %v", err)
-		return err
+		return fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	dataCh <- apiResponse.Result
-	return nil
-}
+	log.Printf("Fetched time series data from API ... [%s - %s]", start.Format(timeFormat), end.Format(timeFormat))
 
-func (s *scraperService) StoreData(data models.TimeSeriesResult) error {
-	if err := s.repository.WriteData(context.Background(), data); err != nil {
-		log.Printf("Error writing data: %v", err)
-		return err
+	select {
+	case dataCh <- apiResponse.Result:
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("context canceled while sending data: %w", ctx.Err())
+	}
+}
+func (s *scraperService) StoreData(ctx context.Context, data models.TimeSeriesResult) error {
+	if err := s.repository.WriteData(ctx, data); err != nil {
+		return fmt.Errorf("failed to store data: %w", err)
 	}
 	return nil
 }

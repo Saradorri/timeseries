@@ -4,13 +4,15 @@ import (
 	"context"
 	"edgecom.ai/timeseries/internal/services"
 	"edgecom.ai/timeseries/pkg/models"
+	"fmt"
 	"log"
 	"sync"
 	"time"
 )
 
 type Bootstrap interface {
-	InitializeHistoricalData()
+	InitializeHistoricalData(ctx context.Context) error
+	Close()
 }
 
 type bootstrap struct {
@@ -25,25 +27,33 @@ func NewBootstrap(url string, service services.ScraperService) Bootstrap {
 	}
 }
 
-func (b *bootstrap) InitializeHistoricalData() {
+func (b *bootstrap) InitializeHistoricalData(ctx context.Context) error {
 	log.Println("Bootstrapping historical data...")
 
 	var wg sync.WaitGroup
+	errCh := make(chan error, 1)
 	stop := time.Now()
 	start := stop.AddDate(-2, 0, 0)
 	chunkSize := 24 * time.Hour
 
 	ch := make(chan models.TimeSeriesResult)
-	defer close(ch)
 
+	// store data to influxDB
 	go func() {
 		for data := range ch {
-			err := b.service.StoreData(data)
-			if err != nil {
-				log.Printf("Error storing data: %v", err)
+			storeCtx, storeCancel := context.WithTimeout(ctx, 60*time.Second)
+			defer storeCancel()
+
+			if err := b.service.StoreData(storeCtx, data); err != nil {
+				errCh <- err
+				return
 			}
 		}
 	}()
+
+	// worker pool and define max for it
+	const maxWorkers = 100
+	sem := make(chan struct{}, maxWorkers)
 
 	for i := start; i.Before(stop); i = i.Add(chunkSize) {
 		wg.Add(1)
@@ -53,14 +63,41 @@ func (b *bootstrap) InitializeHistoricalData() {
 		if endChunk.After(stop) {
 			endChunk = stop
 		}
+
 		go func(start, end time.Time) {
 			defer wg.Done()
-			if err := b.service.FetchData(context.Background(), start, end, ch); err != nil {
-				log.Printf("Error fetching data: %v", err)
+
+			sem <- struct{}{}        // acquire a worker
+			defer func() { <-sem }() // releasee the worker
+
+			fetchCtx, fetchCancel := context.WithTimeout(ctx, 60*time.Second)
+			defer fetchCancel()
+
+			if err := b.service.FetchData(fetchCtx, start, end, ch); err != nil {
+				errCh <- fmt.Errorf("failed to fetch data: %w", err)
 			}
 		}(startChunk, endChunk)
 	}
 
-	wg.Wait()
-	log.Println("Bootstrap completed successfully.")
+	doneCh := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(ch)
+		close(doneCh)
+	}()
+
+	select {
+	case err := <-errCh:
+		return fmt.Errorf("error while initializing historical data: %v", err.Error())
+	case <-ctx.Done():
+		log.Println("Parent context done!")
+		return ctx.Err()
+	case <-doneCh:
+		log.Println("All historical data fetched and stored successfully.")
+		return nil
+	}
+}
+
+func (b *bootstrap) Close() {
+	log.Println("Closing bootstrap data...")
 }

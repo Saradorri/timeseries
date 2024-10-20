@@ -4,12 +4,15 @@ import (
 	"context"
 	"edgecom.ai/timeseries/internal/services"
 	"edgecom.ai/timeseries/pkg/models"
+	"fmt"
 	"log"
+	"sync"
 	"time"
 )
 
 type Scheduler interface {
-	StartScheduler()
+	StartScheduler(ctc context.Context)
+	StopScheduler()
 }
 
 type scheduler struct {
@@ -27,42 +30,81 @@ func NewScheduler(interval int, ss services.ScraperService, ts services.TimeSeri
 	}
 }
 
-func (s *scheduler) StartScheduler() {
+func (s *scheduler) StartScheduler(ctx context.Context) {
 	go func() {
 		for {
 			select {
 			case <-s.ticker.C:
-				log.Println("Scheduler Started...")
-				s.runDataFetching()
+				log.Println("Scheduler starting...")
+				if err := s.runDataFetching(ctx); err != nil {
+					log.Println("Scheduler failed:", err)
+					return
+				}
+			case <-ctx.Done(): // parent context cancellation
+				log.Println("Scheduler exit due to parent context cancellation.")
+				return
 			}
 		}
 	}()
 }
 
-func (s *scheduler) runDataFetching() {
-	start, err := s.timeSeriesService.GetLatestDataPointTimestamp(context.Background())
-	if err != nil {
-		log.Printf("Error fetching latest data point timestamp: %v", err)
-		return
-	}
-
+func (s *scheduler) runDataFetching(ctx context.Context) error {
+	errCh := make(chan error, 1)
 	end := time.Now()
 	dataCh := make(chan models.TimeSeriesResult)
-	defer close(dataCh)
 
+	start, err := s.timeSeriesService.GetLatestDataPointTimestamp(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get latest data point: %v", err)
+	}
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for data := range dataCh {
-			err := s.scraper.StoreData(data)
-			if err != nil {
-				log.Printf("Error storing data: %v", err)
+			select {
+			case <-ctx.Done():
+				log.Println("StoreData canceled due to context cancellation")
+				return
+			default:
+				if err := s.scraper.StoreData(ctx, data); err != nil {
+					errCh <- fmt.Errorf("failed to store data: %v", err)
+					return
+				}
+				log.Println("Scheduler finished.")
 			}
 		}
 	}()
 
-	err = s.scraper.FetchData(context.Background(), time.Unix(start, 0), end, dataCh)
-	if err != nil {
-		log.Printf("Error fetching data: %v", err)
-		return
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := s.scraper.FetchData(ctx, time.Unix(start, 0), end, dataCh); err != nil {
+			errCh <- fmt.Errorf("failed to fetch data: %v", err)
+			return
+		}
+		close(dataCh)
+	}()
+
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	select {
+	case err := <-errCh:
+		return fmt.Errorf("error in scheduler: %v", err.Error())
+	case <-ctx.Done():
+		log.Println("fetching data in scheduler stopped due to context cancellation")
+		return ctx.Err()
+	default:
+		return nil
 	}
-	log.Println("Data scheduler finished successfully.")
+}
+
+func (s *scheduler) StopScheduler() {
+	log.Println("Stopping scheduler...")
+	s.ticker.Stop()
 }

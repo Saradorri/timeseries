@@ -21,6 +21,9 @@ func NewRepository(c *InfluxDBClient, org, bucket string) repository.Repository 
 }
 
 func (r *influxDBRepository) WriteData(ctx context.Context, data models.TimeSeriesResult) error {
+	queryCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	measurement := "time_series_data"
 	writeAPI := r.Client.WriteAPIBlocking(r.org, r.bucket)
 	for _, point := range data {
@@ -29,7 +32,7 @@ func (r *influxDBRepository) WriteData(ctx context.Context, data models.TimeSeri
 			AddField("value", point.Value).
 			SetTime(time.Unix(point.Time, 0))
 
-		if err := writeAPI.WritePoint(ctx, p); err != nil {
+		if err := writeAPI.WritePoint(queryCtx, p); err != nil {
 			return fmt.Errorf("failed to write point to InfluxDB: %w", err)
 		}
 	}
@@ -37,6 +40,9 @@ func (r *influxDBRepository) WriteData(ctx context.Context, data models.TimeSeri
 }
 
 func (r *influxDBRepository) QueryData(ctx context.Context, q models.TimeSeriesQuery) (models.TimeSeriesResult, error) {
+	queryCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	measurement := "time_series_data"
 	query, err := RangeQuery(q, r.bucket, measurement)
 
@@ -44,7 +50,7 @@ func (r *influxDBRepository) QueryData(ctx context.Context, q models.TimeSeriesQ
 		return nil, fmt.Errorf("query error: %w", err)
 	}
 
-	result, err := r.Client.QueryAPI(r.org).Query(ctx, query)
+	result, err := r.Client.QueryAPI(r.org).Query(queryCtx, query)
 	if err != nil {
 		return nil, fmt.Errorf("query error: %w", err)
 	}
@@ -77,9 +83,12 @@ func (r *influxDBRepository) QueryData(ctx context.Context, q models.TimeSeriesQ
 }
 
 func (r *influxDBRepository) GetLatestDataPointTimestamp(ctx context.Context) (int64, error) {
+	queryCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	query := LatestTimestampQuery(r.bucket)
 
-	result, err := r.Client.QueryAPI(r.org).Query(ctx, query)
+	result, err := r.Client.QueryAPI(r.org).Query(queryCtx, query)
 	if err != nil || result == nil {
 		return 0, err
 	}

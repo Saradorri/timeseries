@@ -2,18 +2,17 @@ package validation
 
 import (
 	"edgecom.ai/timeseries/pkg/models"
-	"errors"
 	"fmt"
 	"strings"
 )
 
 func ValidateQueryRequest(input models.TimeSeriesQuery) error {
 	if input.Start >= input.End {
-		return errors.New("start time must be before end time")
+		return fmt.Errorf("start time must be before end time")
 	}
 
 	if input.Window == "" {
-		return errors.New("window cannot be empty")
+		return fmt.Errorf("window cannot be empty")
 	}
 
 	validAggregations := map[string]bool{

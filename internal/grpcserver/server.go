@@ -32,16 +32,25 @@ func NewServer(p int, tsService services.TimeSeriesService) GrpcServer {
 }
 
 func (s *grpcServer) StartServer() error {
+	var server *grpc.Server
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.port))
 	if err != nil {
 		return err
 	}
 
-	server := grpc.NewServer()
+	server = grpc.NewServer()
 	tpb.RegisterTimeSeriesServiceServer(server, s)
 
 	log.Printf("gRPC server running on port %d", s.port)
-	return server.Serve(lis)
+
+	go func() {
+		if err := server.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve: %v", err)
+		}
+	}()
+
+	return nil
 }
 
 func (s *grpcServer) QueryData(ctx context.Context, req *tpb.QueryRequest) (*tpb.QueryResponse, error) {
